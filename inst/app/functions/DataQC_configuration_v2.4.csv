@@ -1,0 +1,272 @@
+Num,Add,Tab.value,Tab.label,select.label,Type,Source,Request.Name,Condition,Layout,Title,height,width,res,tmp,PlotCode,FootCode,StatNote,StatModel,uiInput1,uilab1,uiInput2,uilab2,uiInput3,uilab3,uiInput4,uilab4,uiInput5,uilab5,uiInput6,uilab6,uiInput7,uilab7,uiInput8,uilab8,uiInput9,uilab9,uiInput10,uilab10,uiInput11,uilab11,radio.label,radio.choice,radio.alert,radio.label2,radio.choice2,radio.alert2,radio.label3,radio.choice3,radio.alert3,radio.label4,radio.choice4,radio.alert4,radio.label5,radio.choice5,radio.alert5,radio.label6,radio.choice6,radio.alert6,check.label,check.choice,dropdown.label,dropdown.choice,dropdown.default,dropdown.multiple,dropdown.label2,dropdown.choice2,dropdown.default2,dropdown.multiple2,dropdown.label3,dropdown.choice3,dropdown.default3,text.value,text.label,text.value2,text.label2,dropdown.label4,dropdown.choice4,dropdown.default4
+0,TRUE,NA,NA,NA,title_image,NA,NA,NA,NA,logo.png,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+0,TRUE,NA,NA,NA,title_text,NA,NA,NA,NA,Data Analyses,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+1,TRUE,Tab1,Get data,dropdown selection,--,empty.r,Test0,FALSE,NA,Include Functions,0,0,NA,NA,"#if (exists('indataset')) x<<-indataset[[length(indataset)]]
+if (TRUE) { # functions and libraries [to be added to 'plot.code' column in BEACH CD]
+  library(stringr)  
+ library(lubridate)
+ library(plyr)
+ 
+  qc.cat <<- function(x){
+    y <- table(x)
+    y2 <- head(sort(y, decreasing = TRUE))
+    y3 <- paste(names(y2), y2)
+  nblank <- sum(x %in% c(NA, '', ' '))
+  if (nblank > 0) y3 <- c(y3, paste('BLANK/NA',nblank)) 
+    paste(y3, collapse=', ')  
+  }
+    
+  get.symbol <<- function(x) {
+   sort(unique(unlist(strsplit(str_replace_all(x, ""[[:alnum:]]"", """"), ''))), decreasing = TRUE)
+ }
+
+  qc.symbol <<- function(x, collapse=' ', Allowed=NULL) {
+  if (is.null(Allowed)) paste(get.symbol(x), collapse=collapse) else {
+    all(get.symbol(x) %in% c(get.symbol(Allowed),' ', NA))
+  } 
+  }
+ #qc.symbol(c('%$#@ {} ()'), Allowed='%$#@ {} ()')
+
+ qc.match <<- function(x, Allowed, Split=' ') {
+  if (!is.null(Split)) Allowed <- strsplit(Allowed, split=Split)[[1]]   
+  all(levels(x) %in% Allowed)
+ }
+ #qc.match(c('d', 'a', 'c', 'e'), 'd a c')
+   
+  check.range <<- function(x, Min=NULL, Max=NULL) {
+    ret <- if (is.numeric(x)) {
+      if (!is.null(Min)) ret1 <- min(x, na.rm=TRUE) >= Min
+      if (!is.null(Max)) ret2 <- max(x, na.rm=TRUE) <= Max
+      all(ret1, ret2)
+    } else NA
+  }
+   
+ qc.beach <<- function(x, 
+   vpat.range  = 'cont_', 
+   vpat.num    = 'cont_|ECOGBL|AGE|_TIME|_CENSOR|_NUM|_DAY',
+  vpat.symbol = 'subjid|SUBJID|DOSE',
+  vpat.cat    = 'BORLNM',
+  allowed.symbol = '_-()',
+  allowed.cat    = 'CR ND PD PR SD', 
+  req.var        = 'SUBJID DOSE'
+  ) {
+  if (TRUE)  { # get general summary
+   ret <- NULL
+   for (i in colnames(x)) {
+    tmp <- if (is.numeric(x[,i])) {
+     data.frame(var.name = i, t(fivenum(x[,i])[c(1,5)]), pct.miss=round(mean(x[,i] %in% c(NA, ''))*100,0), 
+      n.nonmiss=sum(!x[,i] %in% c(NA, '')), QC.cat = qc.cat(x[,i]), symbol='', n.unique = length(unique(x[,i])))    
+    } else {
+     data.frame(var.name = i, t(rep(NA, 2)),             pct.miss=round(mean(x[,i] %in% c(NA, ''))*100,0),
+       n.nonmiss=sum(!x[,i] %in% c(NA, '')), QC.cat = qc.cat(x[,i]), symbol=qc.symbol(x[,i]), n.unique = length(unique(x[,i])))
+    }
+    ret <- rbind(ret, tmp)   
+   }
+   colnames(ret)[2:3] <- c('min','max')
+  }
+  
+  if (TRUE)  { # add xxx.pass 
+   range.pass <- ifelse(grepl(vpat.range, colnames(x)), 
+              sapply(x, check.range, 0, 300), NA)
+   
+   num.pass   <- ifelse(grepl(vpat.num, colnames(x)), 
+              sapply(x, is.numeric), NA)
+              
+   symbol.pass <- ifelse(grepl(vpat.symbol, colnames(x)), 
+              sapply(x, qc.symbol, Allowed=allowed.symbol), NA)           
+   
+   cat.pass <- ifelse(grepl(vpat.cat, colnames(x)), 
+              sapply(x, qc.match, Allowed=allowed.cat), NA)           
+   req.var2 <- strsplit(req.var, ' ')[[1]]
+              
+   dim(ret2 <- data.frame(ret, range.pass, num.pass, symbol.pass, cat.pass)) 
+   dim(ret2 <- merge(ret2, data.frame(var.name=req.var2, req=TRUE), all=TRUE, sort=FALSE))
+   ret2$req.pass <- ret2$var.name %in% colnames(x) & ret2$req
+
+   ret2$all.pass <- apply(ret2[,grepl('.pass', colnames(ret2))], 1, 
+               function(x) ifelse(all(x %in% NA), NA, !any(x %in% FALSE)))
+   
+  }
+
+    ret2[, c('var.name', 'n.nonmiss', 'pct.miss', 'n.unique', 'QC.cat', 'symbol', 'min', 'max',  
+         'range.pass', 'num.pass', 'symbol.pass', 'cat.pass', 'req', 'req.pass', 'all.pass')]
+ }
+
+  qc.table <<- function(x, QCterm, TBterm) { # table summary for MI, BE
+  ret <- NULL  
+    if (!is.na(TBterm)) {            
+   for (i in TBterm) {
+    if (!is.numeric(x[,i])) tmp <- table(x[,c(i,QCterm)]) else {
+     tmp <- table(is.na(x[,i]), x[,QCterm])
+     rownames(tmp) <- paste('any missing:',rownames(tmp))
+    }
+    colnames(tmp) <- paste(QCterm,colnames(tmp),sep=':')
+    ret <- rbind(ret, cbind(Var=i, Value=rownames(tmp), as.matrix(tmp)))
+   }
+   rownames(ret) <- 1:nrow(ret)
+      
+   if (QCterm=='MITESTCD') if (any(is.na(x$MIORRES))) {  # check 'MISTAT' & 'MIREASND'
+    tmp2 <- cbind(Var=""MIORRES"", Value=""any missing: TRUE"", 
+           MISTAT  =qc.cat(x[is.na(x$MIORRES),'MISTAT']  ),
+           MIREASND=qc.cat(x[is.na(x$MIORRES),'MIREASND']))
+    ret <- merge(ret, tmp2, all=TRUE, sort=TRUE)
+   }
+   
+   if (QCterm=='PFTESTCD') if (any(is.na(x$PFORRES))) {  # check 'PFSTAT' & 'PFREASND'
+    tmp2 <- cbind(Var=""PFORRES"", Value=""any missing: TRUE"", 
+           PFSTAT  =qc.cat(x[is.na(x$PFORRES),'PFSTAT']  ),
+           PFREASND=qc.cat(x[is.na(x$PFORRES),'PFREASND']))
+    ret <- merge(ret, tmp2, all=TRUE, sort=TRUE)
+   }
+  }
+  ret    
+ }
+  
+}
+return(NULL)",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+2,TRUE,Tab4,QC,dropdown selection,Table,NA,qc_summary,FALSE,1,qc_summary,600,1000,NA,0," qcdata <- if(exists('indataset')) indataset[[input$radio]] else x
+ ret2 <- qc.beach(qcdata,
+ #ret2 <- qc.beach(x,
+   vpat.range  = 'cont_', 
+   vpat.num    = ifelse(exists('indataset'),input$text,'cont_|ECOGBL|AGE|_TIME|_CENSOR|_NUM|_DAY'),  
+  vpat.symbol = '',
+  vpat.cat    = 'BORLNM',
+  allowed.symbol = '_-()/%',
+  allowed.cat    = 'CR ND PD PR SD',
+  req.var        = ifelse(exists('indataset'),input$text2,'SUBJID ARMCD ARM DM_DOSE VISIT_DESCRIPTION VISIT_NUM VISIT_ANA_DAY ITTFL ITTFL_bmk DM_TUMOR_TYPE EFF_TRT_DURATION EFF_CTS_BESTPCHG EFF_CTS EFF_BORLNM EFF_BIN_xx EFF_PFS_TIME EFF_PFS_CENSOR EFF_OS_TIME EFF_OS_CENSOR')
+ )
+  if(exists('indataset')) ret2 <- data.frame(File=input$radio, ret2)
+ ret2
+ ","*** Variable definition ***
+var.name     : variable name
+n.nonmiss    : number of non-missing records
+pct.miss     : percentage of missing data
+QC.cat       : table of most frequent records for a categorical variable
+symbol       : list of special symbols (other than letters and numbers)
+min          : minimal of a numerical variable
+max          : maximal of a numerical variable
+range.pass   : whether this variable falls within pre-specified range
+num.pass     : whether this variable is a numerical variable as pre-specified
+symbol.pass  : whether symbols of this variable are in compliant with pre-specified ones 
+cat.pass     : whether categories of this variable are in compliant with pre-specified ones 
+req          : whether this variable is required
+req.pass     : whether this required variable is in the data
+all.pass     : whether this variable passes all tests
+
+*** FOR EXPERT ONLY ***
+You can generate customized table following reference R code below and input in 'expert' box.  
+ ret2 <- qc.beach(x,
+  vpat.range  = 'cont_', 
+  vpat.num    = 'cont_|ECOGBL|AGE|_TIME|_CENSOR|_NUM|_DAY',
+  vpat.symbol = '',
+  vpat.cat    = 'BORLNM',
+  allowed.symbol = '_-()/',
+  allowed.cat    = 'CR ND PD PR SD',
+  req.var        = c('USUBJID')
+ )
+  ret2
+ ",NA,NA,input$text,Input patterns for numeric variables,input$text2,Input patterns for variables for checking symbols,input$radio,Select a file,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,Select a file,names(indataset),NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,Select a file/dataset,names(indataset),names(indataset)[1],FALSE,NA,NA,NA,NA,NA,NA,NA,"""cont_|ITTFL|(DM_ & AGE)|(DM_ & ECOG)|(DM_ & TIME)| EFF_TRT_DURATION | (EFF_ & _TIME) | (EFF_ & _CENSOR) | EFF_CTS_ | PD_ |VISIT_NUM | VISIT_ANA_DAY""",input pattern for numeric variables ,"""SUBJID""",type required variables separated by space,NA,NA,NA
+3,TRUE,Tab4,QC,dropdown selection,Table,NA,qc_table (MI BE PF),FALSE,1,qc_table,600,1000,NA,0," qcdata <- if(exists('indataset')) indataset[[input$radio]] else x
+  any(tmp2 <- grepl('MITESTCD|BETERM|PFTESTCD',colnames(qcdata)))
+ QCterm <- colnames(qcdata)[tmp2] 
+ TBterm <- if (QCterm %in% 'MITESTCD') c('MITEST', 'MITSTDTL', 'MIORRES', 'MIORRESU') else
+      #if (QCterm %in% 'PFTESTCD') c('PFTEST', 'PFGENRI',  'PFORRES', 'PFORRESU', 'PFSTAT') else
+      if (QCterm %in% 'PFTESTCD') c('PFGENRI',  'PFORRES', 'PFORRESU') else
+      if (QCterm %in% 'BETERM'  ) c('ANTICLON', 'ANTIBLOT', 'CLLMTHD', 'TMTOFIX', 'FIXATIVE', 'TMINFIX') else NA
+ #undebug(qc.table)
+ # TODO: TBterm need to be in names of x, 4/18/2016
+ 
+ ret2 <- if (!any(TBterm %in% names(qcdata))) 'no appropriate variables' else {
+  qc.table(qcdata, QCterm, TBterm[TBterm %in% names(qcdata)]) 
+  }
+ if(exists('indataset')) ret2 <- data.frame(File=input$radio, ret2)
+ ret2
+
+","*** FOR EXPERT ONLY ***
+You can generate customized table following reference R code below and input in 'expert' box.  
+qc.table(x, QCterm='BETERM', TBterm=c('BELOC', 'ANTICLON'))",NA,NA,input$text,Input patterns for numeric variables,input$text2,Input patterns for variables for checking symbols,input$radio,Select a file,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,Select a file,names(indataset),NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,Test Dropdown,1:10,3,NA,NA,NA,NA,NA,NA,NA,NA,"""MITESTCD""",input qcTerm,"""MITEST MITSTDTL MIORRES MIORRESU""",type required variables separated by space,NA,NA,NA
+4,TRUE,Tab4,QC,dropdown selection,Table,NA,qc_date (check Visit against Collection/Sample Date),FALSE,1,qc_date,600,1000,NA,0," visitdata <<- if(exists('indataset')) indataset[[input$radio]] else x
+  if(exists('indataset')) {
+  vDate  <- input$radio2
+  vVisit <- input$radio3
+ } else {
+  vDate  <- 'COLLECTION_DATE'
+  vVisit <- 'VISIT_NAME'
+ } 
+ vSubj  <- names(visitdata)[grepl('SUBJID|subjid', toupper(names(visitdata)))]
+ dateFormat <- '%d-%b-%y'
+ visitdata$Date <- dmy(visitdata[,vDate])
+ arrange(visitdata, get(vSubj), Date)[, c(vSubj, vVisit, 'Date')]
+ dmy('12-March-2015')
+  getDate <- function(x, type='dmy') {
+   eval(call(type, x))
+ }
+ getDate('12-March-2015 13:33:1', 'dmy_hms')
+ 
+ qc.Date <<- function(i, x, vDate, vVisit, vSubj) {
+  y <- try(x[x[,vSubj] %in% i & !is.na(x[, vDate]) & !is.na(x[, vVisit]) , c(vDate, vVisit)])
+  ret <- if (!class(y) == 'try-error') {
+   y
+   #cor(order(y[,vVisit]), order(as.Date(y[,vDate], format=dateFormat)))
+   all(order(y[,vVisit]) == order(as.Date(y[,vDate], format=dateFormat)))
+  } else NA
+  ret
+ }
+ 
+ if (TRUE) { # TODO: change levels according to dropdown, 4/29/2016
+  #dim(z2 <- visitdata[visitdata[,""MITEST""] %in% input$dropdown,]) 
+  #match(visitdata[,'MITEST'], levels(visitdata[,'MITEST'])[2:1])
+  visitdata[,'vVisit2'] <- match(visitdata[,vVisit], input$dropdown)
+   #visitdata <- z2
+ } 
+ 
+ ret2 <- data.frame(unique(visitdata[,vSubj]), sapply(unique(visitdata[,vSubj]), qc.Date, visitdata, vDate, 'vVisit2', vSubj)) 
+ colnames(ret2) <- c(vSubj, 'date.pass')
+  if(exists('indataset')) ret2 <- data.frame(File=input$radio, ret2)
+ ret2
+","*** FOR EXPERT ONLY ***
+You can generate customized table following reference R code below and input in 'expert' box.  
+qc.table(x, QCterm='BETERM', TBterm=c('BELOC', 'ANTICLON'))",NA,NA,input$radio,Select a file,input$radio2,Select Date,input$radio3,Select Visit,input$text,Input a Date variable name,input$text2,Input a Visit variable name,input$dropdown,Input Visit,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,Select a file,names(indataset),NA,Select Date variable,"c(""COLLECTION_DATE"", ""DATE"", input$text)",NA,Select Visit variable,"c(""VISIT_NAME"", ""VISIT"", input$text2)",NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,Select variables for Visit,"sort(unique(visitdata[,input$radio3]))","sort(unique(visitdata[,input$radio3]))",TRUE,NA,NA,NA,NA,NA,NA,NA,"""BEDTC""",Input the name for Date variable,"""BETERM""",Input the name for Visit variable,NA,NA,NA
+5,TRUE,Tab4,QC,dropdown selection,Table,NA,qc_set (compare USUBJID of 2 files),FALSE,1,qc_set,600,1000,NA,0,"  if(!exists('indataset')) {   
+  (str(qcdata1 <- read.csv('//lrlhps/data/ttx_projects/multi-compound/dataqc/prog/dev/to_be_deleted/mi_test.csv',  na = c('NA', '', '.'))))  
+  (str(qcdata2 <- read.csv('//lrlhps/data/ttx_projects/multi-compound/dataqc/prog/dev/to_be_deleted/ds_test.csv',  na = c('NA', '', '.'))))  
+  v1 <- v2 <- 'USUBJID'
+  } else {
+   qcdata1 <- indataset[[input$radio ]]  #indataset[1][[1]]
+  qcdata2 <- indataset[[input$radio2]]  #indataset[2][[1]]
+  v1 <- input$radio3
+  v2 <- input$radio4
+ }
+ 
+ t1 <- c(as.character((unique(qcdata1[,v1]))))
+ t2 <- c(as.character((unique(qcdata2[,v2]))))
+ 
+ qc.set <<- function(D1, D2) {
+  if (all(D1 %in% D2)) 'all A in B' else D1[D1 %in% D2]
+  if (all(D2 %in% D1)) 'all A in B' else D2[D2 %in% D1]
+  t3 <- if (setequal(D1, D2)) 'x1 & x2 are the same.' else {
+   rbind(c('D1 not in D2', paste(setdiff(D1, D2), collapse=' ')),
+      c('D2 not in D1', paste(setdiff(D2, D1), collapse=' ')))      
+  }
+  data.frame(t3)
+ }
+ t4 <- qc.set(D1=t1, D2=t2)
+ #if(exists('indataset')) t4 <- data.frame(t4, File.D1 = names(indataset)[1], File.D2 = names(indataset)[2])
+ if(exists('indataset')) t4 <- data.frame(t4, File.D1 = input$radio, File.D2 = input$radio2, 
+   Variable=paste(v1, v2, sep=' vs. '))
+ t4
+","*** FOR EXPERT ONLY ***
+You can generate customized table following reference R code below and input in 'expert' box.  
+ t4 <- qc.set(D1=t1, D2=t2)
+ if(exists('indataset')) t4 <- data.frame(t4, File.D1 = names(indataset)[1], File.D2 = names(indataset)[2])
+",NA,NA,input$radio,Select the first file,input$radio2,Select the second file,input$radio3,Select a variable from the first file,input$radio4,Select a variable from the second file,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,Select the first file,names(indataset),NA,Select the second file,names(indataset),NA,Select a variable from the first file,colnames(indataset[[input$radio ]]),NA,Select a variable from the second file,colnames(indataset[[input$radio2]]),NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+6,TRUE,Tab4,QC,dropdown selection,Table,NA,view_data (please for small files ONLY),FALSE,1,view_data,600,1000,NA,0,"if (TRUE) { ## view_data: test multi-level header
+ # qcdata <- if(exists('indataset')) indataset[[input$radio]] else x
+ qcdata <- data.frame( indataset[[input$radio]] )
+ if (any(grepl(';', colnames(qcdata)))) colnames(qcdata) <- paste( gsub(';', '; ', colnames(indataset[[input$radio]])), ""; "")
+ qcdata 
+}
+","*** FOR EXPERT ONLY ***
+You can generate customized table following reference R code below and input in 'expert' box.  
+qc.table(x, QCterm='BETERM', TBterm=c('BELOC', 'ANTICLON'))",NA,NA,NA,NA,NA,NA,input$radio,Select a file,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,Select a file,names(indataset),NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,"""MITESTCD""",input qcTerm,"""MITEST MITSTDTL MIORRES MIORRESU""",type required variables separated by space,NA,NA,NA
+9,TRUE,rcode,R Code,NA,--,rcode.r,NA,NA,NA,NA,0,0,NA,0,return(NULL),NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA

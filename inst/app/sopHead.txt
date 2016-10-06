@@ -1,0 +1,56 @@
+if(TRUE){#header
+  #*******************************************************************************
+  #CODE NAME (required)                : CHANGE_ME.R
+  #PROJECT NAME (required)             : CHANGE_ME 
+  #STUDY NUMBER                        : CHANGE_ME
+  #DESCRIPTION (required)              : CHANGE_ME 
+  #SPECIFICATIONS(optional)            : 
+  #VALIDATION TYPE (required)          : 
+  #INDEPENDENT REPLICATION (optional)  : 
+  #ORIGINAL CODE (required)            : 
+  #EXTERNAL CODE FILES THAT ARE NOT 
+  #RE-USEABLE CODE MODULES             : 
+  #SOFTWARE/VERSION# (required)        :  R version 3.2.0 (2015-04-16)
+  
+  #-------------------------------------------------------------------------------
+  #VALIDATION DOCUMENTATION AND REVISION HISTORY SECTION (required):
+  #
+  #Author: &
+  #Ver# Validator            Code History Description		     Date Change
+  #---- ------------       ---------------------------------------  ---------
+  #1.0  FirstName LastName      CHANGE_HERE                           CHANGE_HERE
+  #
+  #******************************************************************************
+}
+
+#please change the detail of this module as needed, examples are inserted here.
+if(TRUE) {  #path, files, ...
+  # Special instruction for running R code outside BEACH
+  # need to run in UNIX:  /lrl/indy/data01/software/R/R_latest
+
+  rm(list=ls())
+  options(object.size=9E+07)
+
+  STATUS <- tolower('dev')   #dev: development
+                             #prd: production
+                             #qa:  validation
+  PROJ <- 'CHANGE_HERE' #changed from proj to PROJ because proj is a function
+  
+  homepath <- 'CHANGE_HERE'
+  projpath <- file.path(homepath, PROJ)
+  datapath <- file.path(projpath, 'data', STATUS, 'sdtm')           #folder for data outside BEACH
+  outpath  <- file.path(projpath, 'output', STATUS, 'CHANGE_HERE')  #folder for output outside BEACH
+  progpath <- file.path(projpath, 'prog', STATUS, 'CHANGE_HERE')    #folder for program outside BEACH
+
+  setwd(datapath)                                    # set working directory for getting data
+  inf          <- 'CHANGE_HERE'                      # for input csv files that can be a vector
+  inf.enc      <- rep('UTF-8', length(inf))          # encoding format, if not UTF-8 then changing to 'unknown'
+  inf.R        <-'CHANGE_HERE'                       # for a Rdata files including path
+  rtfFileName  <- file.path(outpath, 'CHANGE_HERE')  # for the RTF file name, such as 'shiny77e.rtf'
+  progFileName <- 'CHANGE_HERE'                      # for R script file name
+  SourceFile   <- file.path(progpath, 'CHANGE_HERE')                      # the R source file downloaded from BEACH
+  r.lib.alert  <- NULL
+
+  OutputRTF    <- TRUE                                #logic value whether ouput the RTF file
+  
+}

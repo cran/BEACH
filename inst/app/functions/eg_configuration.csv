@@ -1,0 +1,17 @@
+Num,Add,Tab.value,Tab.label,select.label,Type,Source,Request.Name,Condition,Layout,Title,height,width,tmp,PlotCode,FootCode,StatNote,StatModel,uiInput1,uilab1,text.label,text.value,uiInput2,uilab2,text.label2,text.value2
+0,TRUE,NA,NA,NA,title_image,NA,NA,NA,NA,logo.png,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+0,TRUE,NA,NA,NA,title_text,NA,NA,NA,NA,Pharmacometrics,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+1,TRUE,NA,NA,NA,---,empty.r,,FALSE,NA,Select subset using dropdown selection.,0,0,NA,"text2num<<-function(x){
+      x <- gsub(""c("", """", x, fixed=TRUE)
+      x <- gsub("")"", """", x, fixed=TRUE)
+      x <- strsplit(x, split="","")[[1]]
+      return(as.numeric(x))
+    }
+    return(NULL)",,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+2,TRUE,A1,Simple Usage of Traditional Graphics,dropdown selection,Figure,,RenderTable: Four variations on a scatterplot,FALSE,1,Four variations on a scatterplot,500,600,0,"y <<-eval(parse(text=paste(input$text)))
+                   dynamicData<<-data.frame(x=1:length(y), y=y) #create dataset for dynamic plot
+                   dynamicData.xvar<<-""x""  #indicate the column varible for X-axis
+                   dynamicData.yvar<<-""y""  #indicate the column varible for Y-axis
+                   plot(y~x, data=dynamicData, type=""p"", xlab=input$text2 , ylab=input$text )
+                   ",TBD,,,input$text,1. input R code to generate the random values,1. input R code to generate the random values,"""rnorm(100)""",input$text2,2. Label of X-axis,2. Label of X-axis,"""index"""
+3,TRUE,rcode,R Code,NA,--,rcode.r,NA,NA,NA,NA,0,0,0,return(NULL),NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA

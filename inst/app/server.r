@@ -2,7 +2,7 @@ if (TRUE) {    # header
   #/*soh*************************************************************************
   # CODE NAME             : server.r
   # CODE TYPE							: Program 
-  # DATE OF UPDATE:         16-Aug-2016
+  # DATE OF UPDATE:         6-Oct-2016
   # DESCRIPTION           : Server code for BEACH app 
   # SOFTWARE/VERSION#     : R 3.2.0
   # INFRASTRUCTURE        : 
@@ -17,9 +17,17 @@ if (TRUE) {    # header
 
     rm(list=ls())
   
-
+#install packages
+if(TRUE){
+  dep.packages <- c("shiny", "DT", "haven", "xtable", "rtf", "plyr", "sas7bdat", "WriteXLS", "SASxport", "rJava", "devtools");
+  na.packages <- dep.packages[!dep.packages %in% installed.packages()]
+  if (length(na.packages)>0) install.packages(na.packages);
+  
+  #if(!"sas7bdat.parso" %in% installed.packages()) devtools::install_github('BioStatMatt/sas7bdat.parso', force=TRUE)
+}
+    
 #required libraries
-if (inGithub){      
+if(TRUE){    
     library(shiny)
   
     library(DT) #for render table
@@ -27,10 +35,9 @@ if (inGithub){
     library(haven) #for loading SAS datasets
   
     #load a libray not in cran
-#    library(sas7bdat.parso, lib.loc="libs")
-    #library(sas7bdat.parso)
-#    requireNamespace('sas7bdat.parso')
-    
+    if("sas7bdat.parso" %in% installed.packages() ){
+      library(sas7bdat.parso)
+    }
     
     library(xtable)
     library(rtf)
@@ -105,7 +112,7 @@ if (TRUE){
 			  na.string=c('NA', '', '.', ' ', '-', 'NaN'),
                           SF=FALSE, use_haven=T, ...){
     #load a libray not in cran
-    library(sas7bdat.parso, lib.loc="libs")
+    #library(sas7bdat.parso, lib.loc="libs")
     
     ot<-NULL
     if(is.null(name)){name<-file}
@@ -116,10 +123,18 @@ if (TRUE){
     is.xpt<-grepl('.xpt', tolower(name), fixed=TRUE)
     if(is.sas){
       ot.t <- try(ot<-haven::read_sas(file))
-      if(class(ot.t)[1]=='try-error' && requireNamespace("sas7bdat.parso", quietly = TRUE))
+      if(class(ot.t)[1]=='try-error' && 
+	 "sas7bdat.parso" %in% installed.packages() &&
+	 requireNamespace("sas7bdat.parso", quietly = TRUE)) {
          try(ot<-sas7bdat.parso::read.sas7bdat.parso(file))
+      }
       if(is.null(ot)){
-         return(paste("Error: fail to import", name))
+	 if("sas7bdat.parso" %in% installed.packages() ){
+           return(paste("Error: fail to import", name))
+         }else{
+           return(paste("Error: fail to import", name,
+		       ". Please import sas7bdat.parso at GitHub."))
+	 }
       }
       ot <- data.frame(ot)
       for(i in 1:ncol(ot)){
@@ -662,11 +677,11 @@ BeachServer <- function(input,output, session){
   })
  
   output$getData<-renderUI({#Declare global variables#
-    if(!is.null(input$infile)|!is.null(input$infileR)){
+#    if(!is.null(input$infile)|!is.null(input$infileR)){
       tm.Vdic<-Vdic()
       if(!is.na(tm.Vdic$select.label))
         source(file.path(local.path0, tm.Vdic$Source[1]))
-    }
+#    }
     return(NULL)
   }) # Data manipulation for the uploaded dataset
   
@@ -732,29 +747,64 @@ BeachServer <- function(input,output, session){
   #-------Output results to the current screen------------#
   
   output$save_data_ext<-renderUI({
-#    if(is.null(input$infile)&&is.null(input$infileR))return(NULL)
-    choiceN<-AnalyN()[Vdic()$Type[AnalyN()]=='Table']#|
-                        #grepl("dnamicData", Vdic()$PlotCode[AnalyN()], fixed=TRUE)]
-    if(length(choiceN)==0)return(NULL)
-    choice<-sapply(choiceN, 
-      function(x){
-        ifelse(substr(Vdic()$Title[x],1,5)=='paste',
-	  eval(parse(text=Vdic()$Title[x])),
-	  Vdic()$Title[x])
-      })
-    conditionalPanel(condition='true',
-                     checkboxGroupInput('multdat',
-		       'Please Choose a table to save',
-		       choices=choice,
-		       selected=NULL, inline =TRUE),
-                     radioButtons('multdat_ext', 
-		      'Format', 
-		      c('csv','rdata','xpt','xls','SAS code'='sas'), 
-		      selected = NULL, 
-		      inline = TRUE),
-                     downloadButton("save_data","Save Data")                     
-    )
+
+    choiceN<-AnalyN()[Vdic()$Type[AnalyN()]=='Table']
+    choiceP<-AnalyN()[Vdic()$Type[AnalyN()]=='Figure']
+    if(length(choiceN)==0 & length(choiceP)==0)return(NULL)
+    if(length(choiceN)==0 & length(choiceP)>0){
+      return( conditionalPanel(condition='true',
+        div( downloadButton('getEPS','download EPS plot'),
+           downloadButton('getPDF','download PDF plot') ) 
+      ))
+    }
+    if(length(choiceN)>0 & length(choiceP)==0){
+      choice<-sapply(choiceN, 
+                     function(x){
+                       ifelse(substr(Vdic()$Title[x],1,5)=='paste',
+                              eval(parse(text=Vdic()$Title[x])),
+                              Vdic()$Title[x])
+                     })
+      return( conditionalPanel(condition='true',
+                       checkboxGroupInput('multdat',
+                                          'Please Choose a table to save',
+                                          choices=choice,
+                                          selected=NULL, inline =TRUE),
+                       radioButtons('multdat_ext', 
+                                    'Format', 
+                                    c('csv','rdata','xpt','xls','SAS code'='sas'), 
+                                    selected = NULL, 
+                                    inline = TRUE),
+                       downloadButton("save_data","Save Data")                     
+      ) )
+      
+    }
+    
+    if(length(choiceN)>0 & length(choiceP)>0){
+      choice<-sapply(choiceN, 
+                     function(x){
+                       ifelse(substr(Vdic()$Title[x],1,5)=='paste',
+                              eval(parse(text=Vdic()$Title[x])),
+                              Vdic()$Title[x])
+                     })
+      return( conditionalPanel(condition='true',
+                               div( downloadButton('getEPS','download EPS plot'),
+                                    downloadButton('getPDF','download PDF plot') ),
+                               checkboxGroupInput('multdat',
+                                                  'Please Choose a table to save',
+                                                  choices=choice,
+                                                  selected=NULL, inline =TRUE),
+                               radioButtons('multdat_ext', 
+                                            'Format', 
+                                            c('csv','rdata','xpt','xls','SAS code'='sas'), 
+                                            selected = NULL, 
+                                            inline = TRUE),
+                               downloadButton("save_data","Save Data")                     
+      ) )
+      
+    }   
+    
   })
+  
   output$TFL<-renderUI({
     plotcode <- NULL
     currTabL <<- list()
@@ -1008,11 +1058,8 @@ BeachServer <- function(input,output, session){
                      div(class='row'), div(class='span6', uiOutput('select')), 
                      div(class='span2', actionButton(inputId="add_analysis",label="Add Analysis")),
                      sliderInput('figSize', label="Relative Size", 
-		         min=0.1, max=1, value=1, step=0.1, animate=FALSE),
+		         min=0.1, max=1, value=0.3, step=0.1, animate=FALSE),
 		         uiOutput('hwrCtrl'), 
-		         div( downloadButton('getEPS','download EPS plot'),
-		              downloadButton('getPDF','download PDF plot') ),
-                     #div(class='row'),
                      div(class='span12', 
                          uiOutput("TFL"), 
                          uiOutput("footnote"), br(), 
@@ -1223,7 +1270,8 @@ BeachServer <- function(input,output, session){
                      subCode=subRcode,
                      title=title0,devpath=devpath,
                      params1=params[params.ord], paramLabs1=params.lab[params.ord],
-                     outBcode=Vdic()$PlotCode[Vdic()$Num==1] )
+		     outBcode="")
+#                     outBcode=Vdic()$PlotCode[Vdic()$Num==1] )
       rcode<<-r_out  
       cat(r_out)
     }
@@ -1325,7 +1373,6 @@ BeachServer <- function(input,output, session){
       return(f1)
     },
     content=function(file){
-      if (is.null(input$infile))return(NULL)
       if(is.null(input$tumor) || is.na(input$tumor) || gsub(" ", '', input$tumor)=='')
         title0<-c(paste0("Study: ",input$study), '')
       else

@@ -16,3 +16,5 @@ Then, in your R console, please run the following code to run BEACH locally.
 library(shiny);
 runGitHub("BEACH", "DanniYuGithub");
 
+
+To install the package from R cran, please check the link https://cran.r-project.org/web/packages/BEACH/index.html

@@ -1,0 +1,9 @@
+Parameter,Description
+m1,number of enrolled patients who are CTA+ and randomly assigned to treatment or control
+m,the total number of screened patients with valid CTA results (eligible for bridging study)
+n11,number of CTA+ and CDx+ out of n1
+n1,number of CTA+ patients enrolled in bridging (concordance) study
+n01,number of CTA- and CDx+ out of n0
+n0,number of CTA- patients enrolled in bridging (concordance) study
+orr,single-arm objective response rate in subgroup CDA+ and CDx+
+c,"proportion of delta2/delta1, where delta2 is efficacy in CDA- and CDx+"

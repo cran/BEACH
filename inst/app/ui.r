@@ -2,7 +2,7 @@ if (TRUE) {    # header
   #/*soh*************************************************************************
   # CODE NAME             : server.r
   # CODE TYPE  						: Program 
-  # DATE OF UPDATE:         2-June-2016
+  # DATE OF UPDATE:         6-Oct-2016
   # DESCRIPTION           : Server code for BEACH app 
   # SOFTWARE/VERSION#     : R 3.2.0
   # INFRASTRUCTURE        : MS WINDOWS XP
@@ -14,11 +14,8 @@ if (TRUE) {    # header
   #
   #  -----------------------------------------------------------------------------
 }
-myVersionCtr <<- "BEACH1.1.1"
+myVersionCtr <<- "BEACH1.1.2"
 
-if(inGithub){
-#  library(shiny)
-}
 
 BeachUI <- fluidPage(
   

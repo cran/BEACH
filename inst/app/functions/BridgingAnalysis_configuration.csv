@@ -157,6 +157,7 @@ if(TRUE){
   
 }#end of functions
 
+if(length(indataset)==0) indataset[[1]] <<- read.csv(""data/BridgingAnalysis_description.csv"", h=TRUE)
 indataset[[1]]
 ","paste0(""Reference: http://www.tandfonline.com/doi/full/10.1080/10543406.2014.920340"")",NA,NA,input$radio,Dummy control,Dummy Control,c('TRUE'),NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
 2,TRUE,Tab0,Simulation,Dropdown Label1,Figure,NA,Bridging analysis: plot of ORR (CDx+) and sensitivity,FALSE,1,Bridging analysis:HHH:plot of ORR and sensitivity,300,300,80,0,"  est1 <- est_ORR(m1=round(as.numeric(input$text)), m=round(as.numeric(input$text3)), n11=input$slide2, n1=input$slide, n01=input$slide4, n0=input$slide3,

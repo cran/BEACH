@@ -2,7 +2,7 @@ if (TRUE) {    # header
   #/*soh*************************************************************************
   # CODE NAME             : server.r
   # CODE TYPE  						: Program 
-  # DATE OF UPDATE:         6-Oct-2016
+  # DATE OF UPDATE:         2-02-2018
   # DESCRIPTION           : Server code for BEACH app 
   # SOFTWARE/VERSION#     : R 3.2.0
   # INFRASTRUCTURE        : MS WINDOWS XP

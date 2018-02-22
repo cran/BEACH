@@ -1,9 +1,9 @@
-e893ed4ecc79bbccad1b9d1000d34e8f *DESCRIPTION
-a6380be35bc8192ff1e5ce32efa80cb0 *NAMESPACE
+8214dcb384ef713ab663b75d214c0833 *DESCRIPTION
+959ad20d76723a43d7169b8abc6030ad *NAMESPACE
 635f1f32fe6af72451168bafacea356b *R/runBEACH.R
-229f17326297ebaec7f8c836f1524b30 *build/partial.rdb
+2f6adf808f5ac2c47b7858127febe2a3 *build/partial.rdb
 5af86f1b33c96c2d317a843397367326 *inst/app/License.md
-56400599a8a72d42d4d759efdb3c0f07 *inst/app/README.md
+7d9b4b78f032faab70d3caf3245fc5c9 *inst/app/README.md
 2e8ecbfa26d20605ae18e5f1060bf090 *inst/app/configuration_empty_dy1.csv
 f331b32bbcf438e251345eea20e52283 *inst/app/counter_m.Rdata
 5d99cab8d11601093ab85c2ce05b1bb4 *inst/app/counter_startDate.Rdata
@@ -11,6 +11,7 @@ f331b32bbcf438e251345eea20e52283 *inst/app/counter_m.Rdata
 93048a1385b17a244f20a0a4ad1aa2cc *inst/app/functions/BridgingAnalysis_configuration.csv
 51249856f4a31626441eab189aa86693 *inst/app/functions/DataQC_configuration_v2.4.csv
 8b023d54acc19e2cedace9fad9233409 *inst/app/functions/RTF_functions_DY.r
+32aa79046d4d3582f756734f4f2d879b *inst/app/functions/TrialDesignAnalysis_configuration.csv
 3483b486cd7c8463d7f393bb7ca14d1d *inst/app/functions/doc/tmp.xlsx
 8b5fd3016b6c64497f89f4744083c6b0 *inst/app/functions/eg_configuration.csv
 5727c1e1fc83d21ba0b9e4c06d680958 *inst/app/functions/empty.r
@@ -21,9 +22,9 @@ a44301d13d6f51da3582644590bb3053 *inst/app/functions/rcode.r
 cc31e4ec8f20fff0efb6d4b77f4480c6 *inst/app/html_template/body.htm
 f67ec1feb2c67d63024c4794a1038add *inst/app/html_template/content.htm
 f224d94258dc458daa3c2accc09a734d *inst/app/html_template/index.htm
-a9cc696e5207fe2c004cb8f68b3d5dbe *inst/app/server.r
+a720de272d38acd1ad93e1780c9b0a8c *inst/app/server.r
 8839047bf44af4471c51576d88050abb *inst/app/sopHead.txt
-17522c43bd8626c48c4a91c7e71dd062 *inst/app/ui.r
+07e8a888a06ed3adc38ce925f7de5a96 *inst/app/ui.r
 179eebbae5936232b33b20a338614684 *inst/app/www/bootstrap_dy.css
 1b65dafc66145be0e839541fbe626944 *inst/app/www/logo.png
 342b46749d3bfeb26a888cb271497d8d *man/BEACH-package.Rd

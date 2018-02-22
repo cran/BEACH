@@ -19,7 +19,9 @@ if (TRUE) {    # header
   
 #install packages
 if(TRUE){
-  dep.packages <- c("shiny", "DT", "haven", "xtable", "rtf", "plyr", "sas7bdat", "WriteXLS", "SASxport", "rJava", "devtools");
+  dep.packages <- c("shiny", "DT", "haven", "xtable", "rtf", "plyr", "sas7bdat", "WriteXLS", 
+                    #"SASxport", 
+                    "rJava", "devtools");
   na.packages <- dep.packages[!dep.packages %in% installed.packages()]
   if (length(na.packages)>0) install.packages(na.packages);
   
@@ -45,7 +47,7 @@ if(TRUE){
     
     library(WriteXLS)
     library(readxl)
-    library(SASxport)
+    #library(SASxport)
     
  } #required libraries
 
@@ -168,7 +170,8 @@ if (TRUE){
       ot <- as.list(ot)
       names(ot) <- paste0(name, ".", names(ot))
     }else if (is.xpt){
-      ot.t <- try( ot <- SASxport::read.xport(file) )
+      #ot.t <- try( ot <- SASxport::read.xport(file) )
+      ot.t <- try( ot <- haven::read_xpt(file) )
     }else{
       ot<-NA
     }
@@ -865,7 +868,7 @@ BeachServer <- function(input,output, session){
 
       
       
-      addResourcePath('images',local.path3)
+      try( addResourcePath('images',local.path3) )
       if(Vdic()$Type[i]=='Figure'){ 
         if(length(input0.code)>0 && grepl("dynamicData", input0.code, fixed=TRUE)){
           dynamicCode<<-input0.code
@@ -1177,10 +1180,12 @@ BeachServer <- function(input,output, session){
         return(tmp)
       })
     }) # Add analysis by upload
+    myTTT <<- plyr::rbind.fill(loaAdd(),loaLoad())
+    if(!is.null(nrow(myTTT)))  myTTT <<- myTTT[, colnames(loaAdd())]
     
-    write.table(rbind(loaAdd(),loaLoad()),
-      loatext,append=TRUE,col.names=FALSE,row.names=FALSE)
-
+    write.table(myTTT,
+                loatext,append=TRUE,col.names=FALSE,row.names=FALSE)
+    
 
     if((is.null(input$add_analysis)||is.null(input$load_analysis)) || 
       input$add_analysis+input$load_analysis==0){
@@ -1887,7 +1892,8 @@ BeachServer <- function(input,output, session){
       } else if(input$multdat_ext=='csv'){
         write.csv(currTabL[[1]], file=file, row.names=FALSE, fileEncoding='UTF-8')
       } else if(input$multdat_ext=='xpt'){
-        write.xport(currTabL[[1]], file=file, autogen.formats=FALSE)
+        #write.xport(currTabL[[1]], file=file, autogen.formats=FALSE)
+        haven::write_xpt(currTabL[[1]], path=file)
       }
       
     }) # Download data output
@@ -1928,11 +1934,11 @@ BeachServer <- function(input,output, session){
         }else{
           if(length(loatextf)>0){
             loatextf<-file.path(local.path2, loatextf)
-            do.call(file.remove, as.list(loatextf))
+            try( do.call(file.remove, as.list(loatextf)) )
           }
           if(length(tm_png)>0){
             tm_png<-file.path(local.path3,tm_png)
-            do.call(file.remove, as.list(tm_png)) 
+            try( do.call(file.remove, as.list(tm_png)) )
           }
           return(paste('Done',cnt))
         }
@@ -2070,14 +2076,14 @@ indataset.i<<-indataset[[1]]; indataset.i<<-indataset.i[1:10,]\"></textarea>") )
       
 
      if(Vdic()$Type[i]=='Table'){
-        if(!file.exists(tab.name)){
+        #if(!file.exists(tab.name)){
           if(class(try(tmptab<-eval(parse(text=input0.code))))[1]=='try-error'){
             tmptab<-''
           }
-          save(tmptab, file=tab.name)
-        }else{
-          load(tab.name)
-        }
+        #  save(tmptab, file=tab.name)
+        #}else{
+        #  load(tab.name)
+        #}
         rd_tmptab <<- tmptab
         return(tmptab)
       }else{return(NULL)}

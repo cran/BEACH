@@ -1,6 +1,5 @@
 exportPattern("^[[:alpha:]]+")
 import("DT")
-import("SASxport")
 import("WriteXLS")
 import("haven")
 import("plyr")

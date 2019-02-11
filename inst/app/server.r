@@ -2,15 +2,15 @@ if (TRUE) {    # header
   #/*soh*************************************************************************
   # CODE NAME             : server.r
   # CODE TYPE							: Program 
-  # DATE OF UPDATE:         6-Oct-2016
+  # DATE OF UPDATE:         1-Feb-2019
   # DESCRIPTION           : Server code for BEACH app 
-  # SOFTWARE/VERSION#     : R 3.2.0
+  # SOFTWARE/VERSION#     : R 3.3.0
   # INFRASTRUCTURE        : 
   #  -----------------------------------------------------------------------------
   #  Ver   Author                      Program History Description
   #  ----  ---------------            --------------------------------------------
-  #  001      Danni Yu                   Program
-  #  002      Chenchen Yu                Program
+  #  001      Danni Yu                   Program    (2013-2019)
+  #  002      Chenchen Yu                Program    (2013 2014)
   #  -----------------------------------------------------------------------------
 } #Header
  
@@ -25,12 +25,14 @@ if(TRUE){
   na.packages <- dep.packages[!dep.packages %in% installed.packages()]
   if (length(na.packages)>0) install.packages(na.packages);
   
+  newWay<<-TRUE
   #if(!"sas7bdat.parso" %in% installed.packages()) devtools::install_github('BioStatMatt/sas7bdat.parso', force=TRUE)
 }
     
 #required libraries
 if(TRUE){    
-    library(shiny)
+  library(shiny)
+  library(animation)
   
     library(DT) #for render table
     library(sas7bdat) 
@@ -49,6 +51,15 @@ if(TRUE){
     library(readxl)
     #library(SASxport)
     
+  #a pre-defined function object for ploting functions when click a row in DT.
+  click2plot.o<<-function(ids){
+    x=0; y=0;
+    plot(y~x,col='white',axes=F,ylab='', xlab='')
+    leg<-paste0('please define a global function\n',
+                'click2plot(ids=...)\nis not defined yet')
+    legend('topleft', legend=leg, bty='n')
+  }
+  click2plot<-NULL
  } #required libraries
 
 #Key objects and functions
@@ -813,6 +824,8 @@ BeachServer <- function(input,output, session){
     currTabL <<- list()
     currTabL_i <- 1
     
+    
+    #redefine fig size/resolution according to the text bar on top.
     if(is.null(input$hwr)) 
       hwr.c <- ''
     else 
@@ -829,37 +842,39 @@ BeachServer <- function(input,output, session){
       return(NULL)
     }
     for (i in AnalyN()){
-        input0.code <- Vdic()$PlotCode[i]
-        
-        myInput <<- Vdic()[i,UInames]
-        mylab <<- Vdic()[i,gsub('Input', 'lab', UInames)]
-        names(myInput) <<- mylab
-        myInput <<- myInput[!is.na(myInput)]
-        
-        for(m0 in 1:length(myInput)){
-          x <- myInput[m0]
-          if(grepl('date', x))
-            x <-paste0("paste(",x, ")")
-          input0[[m0]] <- eval(parse(text=x))
+      input0.code <- Vdic()$PlotCode[i]
+      pdf.label <<- paste("H1", Vdic()$Tab.label[i],
+                          "H2", Vdic()$Request.Name[i])
+      
+      myInput <<- Vdic()[i,UInames]
+      mylab <<- Vdic()[i,gsub('Input', 'lab', UInames)]
+      names(myInput) <<- mylab
+      myInput <<- myInput[!is.na(myInput)]
+      
+      for(m0 in 1:length(myInput)){
+        x <- myInput[m0]
+        if(grepl('date', x))
+          x <-paste0("paste(",x, ")")
+        input0[[m0]] <- eval(parse(text=x))
+      }
+      if(length(myInput) == length(input0))
+        names(input0) <- gsub("input$", "", myInput, fixed=TRUE)
+      input0 <<- input0 
+      
+      #date and dateR widgets have to be a character before running eval.
+      for(m1 in 1:length(input0)){
+        if(length(input0)>0 && grepl('date', names(input0)[m1], fixed=TRUE)){
+          date.value <- paste("c(", 
+                              paste( paste0("\"", input0[[m1]], "\""), collapse=', '),
+                              ")")
+          input0.code<- gsub(paste0('input$',names(input0)[m1]), 
+                             date.value, input0.code, fixed=TRUE)
         }
-        if(length(myInput) == length(input0))
-           names(input0) <- gsub("input$", "", myInput, fixed=TRUE)
-        input0 <<- input0 
-        
-        #date and dateR widgets have to be a character before running eval.
-        for(m1 in 1:length(input0)){
-          if(length(input0)>0 && grepl('date', names(input0)[m1], fixed=TRUE)){
-            date.value <- paste("c(", 
-                                paste( paste0("\"", input0[[m1]], "\""), collapse=', '),
-                                ")")
-            input0.code<- gsub(paste0('input$',names(input0)[m1]), 
-                               date.value, input0.code, fixed=TRUE)
-          }
-        }
-        new.code <<- input0.code
-        input0.code <<- input0.code
-
-    if(!is.na(Vdic()$Title[i])){
+      }
+      new.code <<- input0.code
+      input0.code <<- input0.code
+      
+      if(!is.na(Vdic()$Title[i])){
         title<-ifelse(substr(Vdic()$Title[i],1,5)=='paste',
                       eval(parse(text=Vdic()$Title[i])),Vdic()$Title[i])
         titlecode<-paste0('<h3><textarea name=\"titlebox\" rows=\"1\" style=\"width:80%\">',
@@ -1029,8 +1044,8 @@ BeachServer <- function(input,output, session){
             file=file, row.names=FALSE, col.names=FALSE)
     }
   ) # Download Source code
-
-  #-----Tabs-----#
+  
+  #-----Text bar for figure size/resolution output -----#
   output$hwrCtrl <- renderUI({
     if(TRUE){
       h1 <- eval(parse(text=Vdic()$height[(AnalyN())])) 
@@ -1045,7 +1060,9 @@ BeachServer <- function(input,output, session){
         ifelse(is.na(r2)||r2==0, 72,  r2),
         sep='; ')
     }
-    textInput('hwr', 'Input height(px); width(px); resolution(px/inch).', value=hwr.default, width="50%" )
+    textInput('hwr', 
+              'Height(px for figure; #MaxRows/page for table: 1~35 or 1~50); width(px); resolution(px/inch).', 
+              value=hwr.default, width="50%" )
   })
   output$AnalysisTab<-renderUI({
     selN<-!is.na(Vdic()$Tab.label) & is.na(Vdic()$Request.Name)
@@ -1100,7 +1117,16 @@ BeachServer <- function(input,output, session){
   output$loa<-renderUI({
     
     loaAdd<-reactive({
-      if (is.null(input$add_analysis) || input$add_analysis==0)return(NULL)
+      t.names <<- c("Request.Name","Type","Titles", "height","width", "res", 
+                    "Footnote", 
+                    "Abbreviations.Footnote","Statistical.Analysis",
+                    "Test.Statistic.Footnote", as.vector(rbind(params.lab,params)) )
+      
+      if (is.null(input$add_analysis) || input$add_analysis==0){
+        tmprow <- data.frame(matrix(NA, nrow=0, ncol=length(t.names)))
+        colnames(tmprow) <- t.names
+        return(tmprow)
+      }
       isolate({
         tmp0<-sapply(params[1:length(params)],function(x){
           if (x %in% widgetOrd()$names){
@@ -1140,7 +1166,7 @@ BeachServer <- function(input,output, session){
           title<-eval(parse(text=title))
         }
         
-        my.hwr <- strsplit(input$hwr,split=';')[[1]]
+        my.hwr <<- strsplit(input$hwr,split=';')[[1]]
         
         w1<<-eval(parse(text=Vdic()$width[AnalyC()]))
         tmprow<-data.frame(t(c(input$analysis,Vdic()$Type[AnalyC()],title, 
@@ -1151,10 +1177,7 @@ BeachServer <- function(input,output, session){
                                footnote2,Vdic()$StatModel[AnalyC()],
                                Vdic()$StatNote[AnalyC()],
                                as.vector(rbind(tmp1,tmp0)) )))
-        colnames(tmprow)<-c("Request.Name","Type","Titles", "height","width", "res", 
-                            "Footnote", 
-                            "Abbreviations.Footnote","Statistical.Analysis",
-                            "Test.Statistic.Footnote", as.vector(rbind(params.lab,params)) )
+        colnames(tmprow)<-t.names
         
         return(tmprow)
         
@@ -1251,7 +1274,8 @@ BeachServer <- function(input,output, session){
   }) # Display LOA
   
   output$rcode<-renderPrint({
-    if (all(is.null(loaTF()))||length(which(loaTF()))==0){return(cat(''))
+    if (all(is.null(loaTF()))||length(which(loaTF()))==0){
+      return(cat(''))
     }else{
       loalistT<-LOA()[loaTF(),]
       loalistT$order<-1:nrow(loalistT)
@@ -1275,8 +1299,7 @@ BeachServer <- function(input,output, session){
                      subCode=subRcode,
                      title=title0,devpath=devpath,
                      params1=params[params.ord], paramLabs1=params.lab[params.ord],
-		     outBcode="")
-#                     outBcode=Vdic()$PlotCode[Vdic()$Num==1] )
+                     outBcode=Vdic()$PlotCode[Vdic()$Num==1] )
       rcode<<-r_out  
       cat(r_out)
     }
@@ -1286,8 +1309,9 @@ BeachServer <- function(input,output, session){
     files<-file.path(local.path1,
                      unique(Vdic()$Source[!is.na(Vdic()$Source)]))
     f1<-files[tolower(substring(files, nchar(files)-1,))==".r"]
-    f1<-f1[!grepl('rcode.r', f1)]
-
+    if(length(f1)>1)
+      f1<-f1[!grepl('rcode.r', f1)]
+    
     rF<-fLoop<-f1
     while(length(fLoop)>0){
       f0<-NULL
@@ -1338,9 +1362,10 @@ BeachServer <- function(input,output, session){
     filename="current_BEACH_EPS_Plot.eps",
     content =function(file){
       postscript(file, 
-          height=tfl.h/tfl.r, 
-          width=tfl.w/tfl.r,  
-          pointsize = 1/tfl.r )
+                 title = paste("BEACH Output", pdf.label),
+                 height=tfl.h/tfl.r, 
+                 width=tfl.w/tfl.r,  
+                 pointsize = 1/tfl.r )
       plottry<-try(eval(parse(text=input0.code[1])))
       if(class(plottry)[1]=='try-error') {
         plot(0,axes=F, col='white',ylab='',xlab='')
@@ -1353,10 +1378,11 @@ BeachServer <- function(input,output, session){
   output$getPDF <- downloadHandler(
     filename="current_BEACH_PDF_Plot.pdf",
     content =function(file){
-        pdf(file, 
-                   height=tfl.h/tfl.r, 
-                   width=tfl.w/tfl.r,  
-                   pointsize = 1/tfl.r )
+      pdf(file, 
+          title = paste("BEACH Output", pdf.label), 
+          height=tfl.h/tfl.r, 
+          width=tfl.w/tfl.r,  
+          pointsize = 1/tfl.r )
       plottry<-try(eval(parse(text=input0.code[1])))
       if(class(plottry)[1]=='try-error') {
         plot(0,axes=F, col='white',ylab='',xlab='')
@@ -1413,6 +1439,8 @@ BeachServer <- function(input,output, session){
       maxW<-pageW-2*mag1
       if(input$onefileRTF=='one file'){
         rtf<-RTF(file, width=pageW, height=pageH, font.size=fs,omi=rep(mag1, 4) )
+        rtf$.rtf <- gsub('\\rtf1\\ansi', '\\rtf1\\ansi\\BEACHoutput', 
+                         rtf$.rtf, fixed=TRUE)
       }
      # rtf$.rtf <- gsub('Times New Roman', 'Courier New', rtf$.rtf)  # make "Courier New" as default
 
@@ -1459,7 +1487,8 @@ BeachServer <- function(input,output, session){
         if (!is.na(codelist[i,params.lab[1]])&&is.na(codelist[i,params[1]]))
 	  next
         if(!all(is.na(codelist[i,params]))){
-          k.list<-params[!is.na(codelist[i,params])]
+          #k.list<-params[!is.na(codelist[i,params])]\
+          k.list<-sort(params)
           for (k in k.list[length(k.list):1]){
           tmp0<-unlist(strsplit(as.character(codelist[i,k]),',',fixed=TRUE))
           tmp<-ifelse(any(is.na(as.numeric(tmp0))),paste0('c(\"',paste0(tmp0,collapse='\",\"'),'\")'),
@@ -1474,6 +1503,8 @@ BeachServer <- function(input,output, session){
           f2<-file.path(local.path2, paste0(input$study,"_",input$tumor, "_", Sys.Date(),'_', nfile, ".rtf"))
           zipfs<-c(zipfs, f2)
           rtf<-RTF(f2, width=pageW, height=pageH,font.size=fs, omi=rep(mag1, 4) )
+          rtf$.rtf <- gsub('\\rtf1\\ansi', '\\rtf1\\ansi\\BEACHoutput', 
+                           rtf$.rtf, fixed=TRUE)
         }
         
         #Add Plot
@@ -1547,13 +1578,14 @@ BeachServer <- function(input,output, session){
                        codelist$width[i], " ', split=',')")   ))[[1]] )
           
           tmp<-eval(parse(text=codelist$tmp[i]))
-          tmptab<-eval(parse(text=codelist$PlotCode[i]))
-          save(tmptab,file=tab.name.i)
           
-          
-          #load(tab.name.i)
-          outTable <<-tmptab #is a data.frame
-	  
+          codelist$PlotCode[i]
+        print(  outTable <<- eval(parse(text= codelist$PlotCode[i]))  )
+        print(outTable)
+        tmptab <<- eval(parse(text= codelist$PlotCode[i]))  
+
+
+
           #check colnames
           outTable.colNm<-colnames(outTable)
           ot1 <- strsplit(outTable.colNm, split=";", fixed=TRUE)
@@ -1587,6 +1619,9 @@ BeachServer <- function(input,output, session){
 
           nrTab<-nrow(outTable)
           ncTab<-ncol(outTable)
+          print(paste("footnote: ", footnote))
+          if(is.null(footnote)) footnote<-" "
+          if(!is.character(footnote)) footnote <- " "
           nrFoot<-1+length(strsplit(footnote, split='\n', fixed=TRUE)[[1]])
           nline1<-max(1, nline-nrFoot - 10) #header lines
           
@@ -1625,7 +1660,7 @@ BeachServer <- function(input,output, session){
             nline1<-max(min(nline1-max_rW1+1, nline.max), nline.min)
           
           #nline1 is the max number Table rows shown on each page
-          if(tab.h<=30&tab.h>=1){
+          if(tab.h<=nline.max & tab.h>=1){
             nline1 <- tab.h
           }
           if(length(tab.w) == length(cWs) ){
@@ -1677,7 +1712,8 @@ BeachServer <- function(input,output, session){
                               cw=cWs,      #column width
                               var.ul=var.ul0 #key string for underline, must be the entire string 
                               #eg. if changing " X1" to "X1", then it will not have the underline
-                              )
+                )
+                if( exists("outTable") ) {rm('outTable'); outTable <<- tmptab}
                 addParagraph(rtf,footnote) 
               } else {
                 rtf<-rtf_table_out_as_sas(rtf, tb1, 
@@ -2106,6 +2142,19 @@ indataset.i<<-indataset[[1]]; indataset.i<<-indataset.i[1:10,]\"></textarea>") )
                                     rd_tmptab[,1] %in% input$outTbl_rows_selected,]
     }
     return(NULL)
+  })
+  
+  output$pumpPlotOut<-renderPlot({
+    if(is.null(input$outTbl_rows_selected)||input$outTbl_rows_selected==0){
+      return(NULL)
+    }
+    isolate({
+      if(is.null(click2plot) || !is.function(click2plot)){
+        click2plot.o(input$outTbl_rows_selected)
+      }else{
+        click2plot();#input$outTbl_rows_selected needs inside
+      }
+    })
   })
   
   

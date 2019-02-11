@@ -1,4 +1,3 @@
-
 #----------UI Functions------------------#
 
 
@@ -155,11 +154,15 @@ runcode<-function(codelist, # merged dataset of loa and configuration file
                   outBcode=NULL
 ){
   
-  codelist<-codelist[!(!is.na(codelist[,paramLabs1[1]]) & is.na(codelist[,params1[1]])),]
+  #codelist<-codelist[!(!is.na(codelist[,paramLabs1[1]]) & is.na(codelist[,params1[1]])),]
   sourceCode<-unique(sourceCode[!is.na(sourceCode)])
   sourceCode<-sourceCode[!grepl("rcode.r",sourceCode)]
   head1<-sop_head  #paste0('#/*soh',paste0(rep('*',73),collapse=''))
   nParam<-length(params1)
+  
+  params1.od <- order(params1)
+  params1    <- params1[params1.od]
+  paramLabs1 <- paramLabs1[params1.od]
 
   if(FALSE){
   head2<-'if(FALSE){ # DESCRIPTION: Parameters for generating following results:'
@@ -351,6 +354,7 @@ runcode<-function(codelist, # merged dataset of loa and configuration file
 
 #-------------Creat Parameters-------------#
 #use radiobutton, slidebar, checkbox, selectInput
+if(newWay){
 widgets.code<-function(UInames, max.n){
   ind<-max.n!=0
 
@@ -408,7 +412,7 @@ widgets.code<-function(UInames, max.n){
   })
   dropdown.codes<-Reduce(function(x,y)paste0(x,y,collapse='\n'),dropdown.code)
      
-  slide.code<-lapply(max.n['slide']:1,function(x){
+  slide.code<<-lapply(max.n['slide']:1,function(x){
     ret<-'output$slider_xx<-renderUI({
     tmpN<-reactive(which(slide.param()$Request.Name==input$analysis))
     if(length(tmpN())<1) return(NULL)
@@ -421,7 +425,89 @@ widgets.code<-function(UInames, max.n){
     ||class(try(by<-eval(parse(text=slide.param()[tmpN(),\'slide.by_xx\']))))[1]==\"try-error\")return(NULL)
     if (length(c(min,max,default,by))<4)return(div(class=\"alert alert-error\",strong(\'slider Options Are Not Available\')))
     if (is.na(default))default<-mean(min,max)
-    sliderInput(\'slide_xx\',label=strong(slide.param()[tmpN(),\'slide.label_xx\']),min=min,max=max,value=default,step=by,animate = TRUE)})\n\n'
+    dw.max<<-max
+    dw.min<<-min
+    dw.by<<-by
+    conditionalPanel(condition=\'true\',
+      sliderInput(\'slide_xx\',label=strong(slide.param()[tmpN(),\'slide.label_xx\']),
+                 min=min,max=max,value=default,step=by,animate = TRUE),
+      downloadButton(\"getAnim_slide_xx\",label=\'gif\'),
+      downloadButton(\"getPDF_slide_xx\",label=\'pdf\')
+    )
+  }) \n\n 
+    output$getAnim_slide_xx<-downloadHandler(
+    filename=function(){
+      tt <- \'currentSliderAnimation.gif\'
+      return(tt)
+    },
+    content=function(file){
+      slideAnimFunc <- function(code1){
+        seq1 <- seq(from=dw.min, to=dw.max, by=dw.by)
+        for(sld1 in seq1){
+          code2<- gsub(\'input$slide_xx\', sld1, code1)
+          eval(parse(text=code2))
+        }
+      }
+      
+      codelist<<-Vdic()$PlotCode[AnalyN()[1]]
+      #codelist$width <- codelist$width.x
+      #codelist$height <- codelist$height.x
+      #codelist$res <- codelist$res.x
+      #animation::saveVideo(slideAnimFunc(codelist), video.name=file)  
+      owd<-setwd(local.path2)
+      seq1 <- seq(from=dw.min, to=dw.max, by=dw.by)
+      fn.ani1<-dir(local.path2)
+      fn.ani1<-fn.ani1[grepl(\".png\", fn.ani1)]
+      file.remove(fn.ani1)
+      fn.ani<-NULL
+      for(sld1 in seq1){
+        print(sld1)
+        print( code2<<- gsub(\'input$slide_xx\', sld1, codelist, fixed=T) )
+        fn.ani <- c(fn.ani, paste0(\'slideAnim\',sld1, \'.png\'))
+        png(paste0(\'slideAnim\',sld1, \'.png\'))
+          try0<-try(eval(parse(text=code2)))
+          if(class(try0)[1]==\'try-error\'){
+            plot(0~0, col=\'white\', axes=F, ylab=\'\', xlab=\'\')
+          }
+        dev.off()
+      }
+      im.convert(\'slideAnim*.png\', output=file)
+      try(file.remove(fn.ani))
+      setwd(owd)
+    })
+    \n\n
+    
+    output$getPDF_slide_xx<-downloadHandler(
+    filename=function(){
+      tt <- \'currentSlider.pdf\'
+      return(tt)
+    },
+    content=function(file){
+      slideAnimFunc <- function(code1){
+        seq1 <- seq(from=dw.min, to=dw.max, by=dw.by)
+        for(sld1 in seq1){
+          code2<- gsub(\'input$slide_xx\', sld1, code1)
+          eval(parse(text=code2))
+        }
+      }
+      codelist<<-Vdic()$PlotCode[AnalyN()[1]]
+      seq1 <- seq(from=dw.min, to=dw.max, by=dw.by)
+      pdf(file, 
+          title = paste(\"BEACH Output\", pdf.label), 
+          height=tfl.h/tfl.r, 
+          width=tfl.w/tfl.r,  
+          pointsize = 1/tfl.r )
+      for(sld1 in seq1){
+        print(sld1)
+        print( code2<<- gsub(\'input$slide_xx\', sld1, codelist, fixed=T) )
+        try0<-try(eval(parse(text=code2)))
+        if(class(try0)[1]==\'try-error\'){
+          plot(0~0, col=\'white\', axes=F, ylab=\'\', xlab=\'\')
+        }
+      }
+      dev.off()
+    })
+    \n\n'
     if (x==1){ret<-gsub('_xx','',ret,fixed=TRUE)}else{ret<-gsub('_xx',x,ret,fixed=TRUE)}
     ret
     })  
@@ -515,7 +601,8 @@ widgets.code<-function(UInames, max.n){
     collapse='\n\n')
   return(widgets.code)
 }
-
+}
+  
 widgets.order<<-function(analysis, UIdic1, UInames, ncol.widg=NULL){
 #  print(UIdic1)
 #  print(UInames)
@@ -1508,7 +1595,8 @@ runcode<-function(codelist, # merged dataset of loa and configuration file
 
 #-------------Creat Parameters-------------#
 #use radiobutton, slidebar, checkbox, selectInput
-widgets.code<-function(UInames, max.n){
+if(!newWay){
+  widgets.code<-function(UInames, max.n){
   ind<-max.n!=0
 
   check.code<-lapply(max.n['check']:1,function(x){  
@@ -1672,7 +1760,8 @@ widgets.code<-function(UInames, max.n){
     collapse='\n\n')
   return(widgets.code)
 }
-
+}
+  
 widgets.order<<-function(analysis, UIdic1, UInames, ncol.widg=NULL){
 #  print(UIdic1)
 #  print(UInames)
@@ -2269,7 +2358,7 @@ cLink<-function( #generate a link in content table
 #make it into multi-level header
   toMultH <- function(
     tbc, # a vector of html table code
-    split1=";"                
+    split1=";"   #the string character spliting the header             
   ){
     wh.h <- grep('<th>', tbc)
     if(length(wh.h)>1){return(tbc)}

@@ -29,7 +29,7 @@ if(TRUE) {  #path, files, ...
   # need to run in UNIX:  /lrl/indy/data01/software/R/R_latest
 
   rm(list=ls())
-  options(object.size=9E+07)
+  options(object.size=9E+07, stringsAsFactors = FALSE)
 
   STATUS <- tolower('dev')   #dev: development
                              #prd: production

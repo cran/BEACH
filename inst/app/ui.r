@@ -2,9 +2,9 @@ if (TRUE) {    # header
   #/*soh*************************************************************************
   # CODE NAME             : server.r
   # CODE TYPE  						: Program 
-  # DATE OF UPDATE:         2-02-2018
+  # DATE OF UPDATE:         1-Feb-2019
   # DESCRIPTION           : Server code for BEACH app 
-  # SOFTWARE/VERSION#     : R 3.2.0
+  # SOFTWARE/VERSION#     : R 3.3.0
   # INFRASTRUCTURE        : MS WINDOWS XP
   #  -----------------------------------------------------------------------------
   #  Ver   Author                    Program History Description
@@ -14,7 +14,7 @@ if (TRUE) {    # header
   #
   #  -----------------------------------------------------------------------------
 }
-myVersionCtr <<- "BEACH1.1.2"
+myVersionCtr <<- "BEACH1.3.3" 
 
 
 BeachUI <- fluidPage(
@@ -36,6 +36,7 @@ BeachUI <- fluidPage(
                            "#add_analysis{height: 36px;}",
                            "#rcode{max-height:1000px; overflow-y:scroll;}",
                            "#scode{max-height:1000px; overflow-y:scroll;}",
+			                     "#pumpPlotOut{overflow-x:scroll; overflow-y:scroll;}",
                            ".shiny-text-output{max-width:95%; max-height:40%; overflow-y:scroll; }",
                            "th{text-align: center; border: 1px solid black;}",
                            "td{text-align: center; }", 
@@ -59,12 +60,13 @@ BeachUI <- fluidPage(
     id = "controls1", class = "panel panel-default", fixed = FALSE,
     draggable = TRUE, top = "0%", left = "auto", right = "0%", bottom ="auto",
     width = "20%", height = "auto" , 
-       p(style="color:black;",strong(myVersionCtr)),
-       checkboxInput("collSidebar", "Show left sidebar for data input", value=TRUE),
-       checkboxInput("useDT", "use renderDataTable", value=FALSE),
-       radioButtons("ncol.widg.rd", "number of columns", c(1, 2, 3), inline=TRUE),
-       sliderInput('wpW', 'Width of the widget panel', min=20, max=100, value=20, animate=TRUE),
-       uiOutput('beachColor')
+    p(style="color:black;",strong(myVersionCtr)),
+    checkboxInput("collSidebar", "Show the sidebar for data input", value=TRUE),
+    checkboxInput("useDT", "use renderDataTable", value=FALSE),
+    checkboxInput("pumpPlot", "Show plot in a single window", value=FALSE),
+    radioButtons("ncol.widg.rd", "number of columns", c(1, 2, 3), inline=TRUE),
+    sliderInput('wpW', 'Width of the widget panel', min=20, max=100, value=20, animate=TRUE),
+    uiOutput('beachColor')
   ),  
   uiOutput('wp.width'),
   
@@ -83,8 +85,10 @@ BeachUI <- fluidPage(
     downloadButton("save_loa","Save LOA"),
     checkboxInput('delete_loa', 'Only Selected', value=FALSE),
     wellPanel( uiOutput('LOA'), width="20%" ),
-    radioButtons('landscp', 'RTF page layout', choices=c("Landscape", "Portrait"), selected="Portrait", inline=TRUE),
-    radioButtons('onefileRTF', 'RTF output', choices=c('one file','multiple files'), selected='one file', inline=TRUE),
+    radioButtons('landscp', 'RTF page layout', 
+                 choices=c("Landscape", "Portrait"), selected="Portrait", inline=TRUE),
+    radioButtons('onefileRTF', 'RTF output', 
+                 choices=c('one file','multiple files'), selected='one file', inline=TRUE),
     downloadButton("save_output","OutputRTF"), #output as a RTF file    
     br(),
     textInput('hPath', label='HTM file location:', value=htmlPath), 
@@ -136,6 +140,16 @@ BeachUI <- fluidPage(
   #-----End of Sidebar Panel-----#
   
   
+  #-----Start pumpPlot single Window-----#  
+  div('data-display-if'="input.pumpPlot == true", 
+      absolutePanel( #for pumping out a single window
+        style = "z-index: 999; background-color: #dbdbdb;",
+        id = "controls1", class = "panel panel-default",  fixed=FALSE,
+        draggable=TRUE, top="1%", left="20%", right="40%", bottom ="auto",
+        width = "50%", height = "auto" , 
+        plotOutput('pumpPlotOut')
+        ))
+  #-----End of Sidebar Panel-----#
 ) #Generate Tabs
 shinyUI(BeachUI)
 
